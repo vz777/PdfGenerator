@@ -52,7 +52,7 @@ class GeneratorController extends BaseFrontController
         $html = $this->renderRaw(
             $templateName,
             [],
-            $this->getTemplateHelper()->getActivePdfTemplate()    
+            $this->getTemplateHelper()->getActivePdfTemplate()
         );
 
         try {
@@ -79,7 +79,7 @@ class GeneratorController extends BaseFrontController
 
             $this->getTranslator()->trans(
                 "We're sorry, this PDF document %name is not available at the moment.",
-                               [ '%name' => $outputFileName],
+                [ '%name' => $outputFileName],
                 PdfGenerator::DOMAIN_NAME
             )
         );
