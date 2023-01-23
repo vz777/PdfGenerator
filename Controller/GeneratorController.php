@@ -1,39 +1,46 @@
 <?php
-/*************************************************************************************/
-/*      Copyright (c) Franck Allimant, CQFDev                                        */
-/*      email : thelia@cqfdev.fr                                                     */
-/*      web : http://www.cqfdev.fr                                                   */
-/*                                                                                   */
-/*      For the full copyright and license information, please view the LICENSE      */
-/*      file that was distributed with this source code.                             */
-/*************************************************************************************/
-
-/**
- * Created by Franck Allimant, CQFDev <franck@cqfdev.fr>
- * Date: 24/01/2019 19:38
- */
 
 namespace PdfGenerator\Controller;
 
 use PdfGenerator\PdfGenerator;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\Event\PdfEvent;
 use Thelia\Core\Event\TheliaEvents;
+use Thelia\Core\Template\TemplateHelperInterface;
+use Thelia\Core\Template\TheliaTemplateHelper;
 use Thelia\Exception\TheliaProcessException;
 use Thelia\Log\Tlog;
 
+
+
 class GeneratorController extends BaseFrontController
 {
+    /** @var TemplateHelperInterface */
+    protected $templateHelper;
+    protected $eventDispatcher;
+    
+    public function __construct(TemplateHelperInterface $templateHelper, EventDispatcherInterface $eventDispatcher)
+    {
+        $this->templateHelper = $templateHelper;
+        $this->eventDispatcher = $eventDispatcher;
+    }
+
+    /**
+     * @Route("/getpdf/{template}/{outputFileName}", name="pdf_generator_get_pdf")
+     */
     public function downloadPdf($template, $outputFileName)
     {
         return $this->renderPdfTemplate($template, $outputFileName, false);
     }
-
+    /**
+     * @Route("/viewpdf/{template}/{outputFileName}", name="pdf_generator_view_pdf")
+     */
     public function viewPdf($template, $outputFileName)
     {
         return $this->renderPdfTemplate($template, $outputFileName, true);
     }
-
     /**
      * @param $templateName
      * @param $outputFileName
@@ -45,14 +52,15 @@ class GeneratorController extends BaseFrontController
         $html = $this->renderRaw(
             $templateName,
             [],
-            $this->getTemplateHelper()->getActivePdfTemplate()
+            $this->getTemplateHelper()->getActivePdfTemplate()    
         );
 
         try {
             $pdfEvent = new PdfEvent($html);
-
-            $this->dispatch(TheliaEvents::GENERATE_PDF, $pdfEvent);
-
+            //$this->dispatch(TheliaEvents::GENERATE_PDF, $pdfEvent);
+            //$eventDispatcher->dispatch($pdfEvent, TheliaEvents::GENERATE_PDF);
+            //ununderstandble for me -- it should work better with the line above but it work the following line
+            $this->eventDispatcher->dispatch($pdfEvent, TheliaEvents::GENERATE_PDF);
             if ($pdfEvent->hasPdf()) {
                 return $this->pdfResponse($pdfEvent->getPdf(), $outputFileName, 200, $browser);
             }
@@ -67,9 +75,11 @@ class GeneratorController extends BaseFrontController
         }
 
         throw new TheliaProcessException(
+            //$translator->trans(
+
             $this->getTranslator()->trans(
                 "We're sorry, this PDF document %name is not available at the moment.",
-                [ '%name' => $outputFileName],
+                               [ '%name' => $outputFileName],
                 PdfGenerator::DOMAIN_NAME
             )
         );
